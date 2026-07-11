@@ -1,18 +1,51 @@
 package RegistroDePasajeros;
 
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+import java.util.List;
 
 /**
  *
- * @author jherargonzales
+ * @author Andy
  */
+public class Pasajeros {
+    private final ArbolB<Boleto> registro;
 
-// EN ESTA CLASE : 
-// 1.ARBOL B, recibe el boleto de la persona y lo inserta en el arbol
-// 2.
-public class Pasajeros<Boleto> { 
-    
+    public Pasajeros(int orden) {
+        registro = new ArbolB<Boleto>(orden) {};
+    }
+
+    public void nuevoPasajero(Boleto nuevoBoleto) {
+        registro.insertar(nuevoBoleto);
+    }
+
+    public void cancelarVuelo(Boleto retirarBoleto) {
+        registro.eliminar(retirarBoleto);
+    }
+
+    public Boleto buscarBoleto(Boleto boleto) {
+        return registro.buscar(boleto);
+    }
+
+    public boolean contieneBoleto(Boleto boleto) {
+        return registro.contiene(boleto);
+    }
+
+    public int cantidadDePasajeros() {
+        return registro.size();
+    }
+
+    public boolean esVacio() {
+        return registro.esArbolVacio();
+    }
+
+    public List<Boleto> listarPasajerosEnOrden() {
+        return registro.recorridoEnInOrden();
+    }
+
+    public List<Boleto> listarPasajerosPorNiveles() {
+        return registro.recorridoPorNiveles();
+    }
+
+    public void mostrarArbol() {
+        System.out.println(registro.toString());
+    }
 }

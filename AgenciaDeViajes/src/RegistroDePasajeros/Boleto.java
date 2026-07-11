@@ -1,16 +1,16 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package RegistroDePasajeros;
 
 /**
  *
  * @author jherargonzales
  */
-public class Boleto {
+public class Boleto implements Comparable<Boleto> {
     
     private int nroBoleto;
+    private String nombrePersona;
+    private double precioDeBoleto;
+    private int Origen;
+    private int Destino;
 
     public Boleto(int nroBoleto, String nombrePersona, double precioDeBoleto, int Origen, int Destino) {
         this.nroBoleto = nroBoleto;
@@ -39,9 +39,6 @@ public class Boleto {
     public void setDestino(int Destino) {
         this.Destino = Destino;
     }
-    private String nombrePersona;
-    private double precioDeBoleto;
-    private int Origen;
 
     public int getNroBoleto() {
         return nroBoleto;
@@ -62,9 +59,28 @@ public class Boleto {
     public int getDestino() {
         return Destino;
     }
-    private int Destino;
-    
-    
-    
-    
+
+    @Override
+    public int compareTo(Boleto otro) {
+        return Integer.compare(this.nroBoleto, otro.nroBoleto);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Boleto otro = (Boleto) obj;
+        return this.nroBoleto == otro.nroBoleto;
+    }
+
+    @Override
+    public String toString() {
+        return "Boleto{" +
+                "nro=" + nroBoleto +
+                ", nombre='" + nombrePersona + '\'' +
+                ", precio=" + precioDeBoleto +
+                ", origen=" + Origen +
+                ", destino=" + Destino +
+                '}';
+    }
 }
