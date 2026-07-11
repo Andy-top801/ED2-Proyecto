@@ -83,7 +83,7 @@ public abstract class Monticulo<T extends Comparable<T>> {
     }
 
     private void flotar(int posElemento){
-        while (posElemento> 0 ){
+        while (posElemento > 0 ){
             int padre = getPosicionPadre(posElemento);
             T datoHijo = elementos.get(posElemento);
             T datoPadre = elementos.get(padre);

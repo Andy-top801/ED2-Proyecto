@@ -30,24 +30,19 @@ public class Dijkstra<T extends Comparable<T>> {
     public void ejecutar(T verticeOrigen) {
         
         // PASO 1: VALIDACIÓN E INICIALIZACIÓN DE ESTRUCTURAS
+        elGrafo.validarVertice(verticeOrigen);
         int posOrigen = elGrafo.getNroDeVertice(verticeOrigen);
-        if (posOrigen == NRO_VERTICE_INVALIDO) { // Usamos tu constante internamente si prefieres
-            throw new IllegalArgumentException("El vértice de origen no existe en el grafo.");
-        }
-
         int nroVertices = elGrafo.cantidadDeVertices();
-
         // Instanciamos nuestras 3 estructuras de control
         this.marcados = new ControlMarcados(nroVertices);
         this.costos = new ControlCostos(nroVertices, posOrigen); // Origen inicia en 0, resto en Infinito
         this.predecesores = new ControlPredecesores(nroVertices); // Todos inician en -1
 
         // PASO 2: BUCLE PRINCIPAL
-        // Repetimos el proceso hasta que todos los vértices alcanzables estén marcados
-        while (!marcados.estanTodosMarcados()) {
+        do {
 
             // PASO 3: SELECCIÓN DEL VÉRTICE ACTIVO (El más barato disponible)
-            // Delegamos la búsqueda al "método estrella" de nuestra clase ControlCostos
+            // Delegamos la búsqueda al metodo de la clase ControlCostos
             int posVerticeActual = costos.obtenerVerticeMenorCostoNoMarcado(marcados);
 
             // Si devuelve -1, significa que los vértices restantes son inalcanzables (costo infinito). Terminamos.
@@ -63,27 +58,28 @@ public class Dijkstra<T extends Comparable<T>> {
             T verticeActual = elGrafo.getVerticePorNro(posVerticeActual);
             Iterable<AdyacenteConPeso> adyacentes = elGrafo.adyacentesDelVertice(verticeActual);
 
-            for (AdyacenteConPeso adyacente : adyacentes) {
-                int posVecino = adyacente.getIndiceVertice();
-                double pesoArista = adyacente.getPeso();
+            for (AdyacenteConPeso adyacenteEnTurno : adyacentes) {
+                int posAdyacenteEnTurno = adyacenteEnTurno.getIndiceVertice();
+                double pesoArista = adyacenteEnTurno.getPeso();
 
                 // Solo calculamos si el vecino NO está marcado
-                if (!marcados.estaVerticeMarcado(posVecino)) {
+                if (!marcados.estaVerticeMarcado(posAdyacenteEnTurno)) {
                     
-                    // PASO 6: ACTUALIZACIÓN (Relajación)
+                    // PASO 6: ACTUALIZACIÓN 
                     // Calculamos: ¿Cuánto costaría llegar a este vecino si paso por el vértice actual?
                     double costoAcumulado = costos.getCosto(posVerticeActual) + pesoArista;
 
                     // Si el nuevo costo calculado es MEJOR (más barato) que el que ya teníamos anotado...
-                    if (costoAcumulado < costos.getCosto(posVecino)) {
+                    if (costoAcumulado < costos.getCosto(posAdyacenteEnTurno)) {
                         
                         // ¡Actualizamos las libretas!
-                        costos.setCosto(posVecino, costoAcumulado);              // Guardamos el nuevo costo
-                        predecesores.setPredecesor(posVecino, posVerticeActual); // Dejamos la miga de pan
+                        costos.setCosto(posAdyacenteEnTurno, costoAcumulado);              // Guardamos el nuevo costo
+                        predecesores.setPredecesor(posAdyacenteEnTurno, posVerticeActual); // Guardamos el predecesor
                     }
                 }
             }
-        }
+            // Repetimos el proceso hasta que todos los vértices alcanzables estén marcados
+        } while (!marcados.estanTodosMarcados());
     }
 
     
