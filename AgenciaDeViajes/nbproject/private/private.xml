@@ -3,8 +3,13 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/mujic/Desktop/ProyectoED2/AgenciaDeViajes/src/ClasificacionDeViajes/Main.java</file>
-            <file>file:/C:/Users/mujic/Desktop/ProyectoED2/AgenciaDeViajes/src/ClasificacionDeViajes/RankingDeLugares.java</file>
+            <file>file:/Users/jherargonzales/proyectoED2/ED2-Proyecto/AgenciaDeViajes/src/RutasDeMenorCosto/Grafo_Pesado.java</file>
+            <file>file:/Users/jherargonzales/proyectoED2/ED2-Proyecto/AgenciaDeViajes/src/RutasDeMenorCosto/AdyacenteConPeso.java</file>
+            <file>file:/Users/jherargonzales/proyectoED2/ED2-Proyecto/AgenciaDeViajes/src/RutasDeMenorCosto/ControlMarcados.java</file>
+            <file>file:/Users/jherargonzales/proyectoED2/ED2-Proyecto/AgenciaDeViajes/src/RutasDeMenorCosto/ControlCostos.java</file>
+            <file>file:/Users/jherargonzales/proyectoED2/ED2-Proyecto/AgenciaDeViajes/src/RutasDeMenorCosto/ControlPredecesores.java</file>
+            <file>file:/Users/jherargonzales/proyectoED2/ED2-Proyecto/AgenciaDeViajes/src/RutasDeMenorCosto/Dijkstra.java</file>
+            <file>file:/Users/jherargonzales/proyectoED2/ED2-Proyecto/AgenciaDeViajes/src/RutasDeMenorCosto/Test_Dijkstra.java</file>
         </group>
     </open-files>
 </project-private>
