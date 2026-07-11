@@ -1,4 +1,4 @@
-package Prueba;
+package ClasificacionDeViajes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +26,20 @@ public abstract class Monticulo<T extends Comparable<T>> {
 
     public boolean esMonticuloVacio(){
         return elementos.isEmpty();
+    }
+
+    public T verTope(){
+        if (esMonticuloVacio()){
+            throw new IllegalArgumentException("El monticulo se encuentra vacio");
+        }
+        return elementos.get(0);
+    }
+
+    public T get(int posicion){
+        if (posicion < 0 || posicion >= size()){
+            throw new IndexOutOfBoundsException("La posicion se encuentra fuera del rango del monticulo");
+        }
+        return elementos.get(posicion);
     }
 
     public int size(){
@@ -108,6 +122,10 @@ public abstract class Monticulo<T extends Comparable<T>> {
         for (int i = size()/2 -1; i >= 0; i--){
             hundir(i);
         }
+    }
+
+    public void reconstruir(){
+        construirMonticulo();
     }
 
 }
