@@ -48,12 +48,14 @@ public class Formulario extends javax.swing.JFrame {
     private List<String> rutaCalculada = null;
     private String origenSeleccionado = null;
     private String destinoSeleccionado = null;
-    private String ultimoDestinoComprado = null;
+    private List<String> ciudadesHistoricas = new ArrayList<>(java.util.Arrays.asList(DEPARTAMENTOS));
+    private java.util.Set<Integer> boletosConfirmados = new java.util.HashSet<>();
 
     // ================ COMPONENTES — TAB 1: COMPRA ================
     private JTextField txtNombreCompra;
     private JComboBox<String> cmbOrigenCompra;
     private JComboBox<String> cmbDestinoCompra;
+    private JTextField txtBoletoCalificar;
     private JSpinner spnFeedback;
     private JTextArea txtResultadosCompra;
 
@@ -204,14 +206,13 @@ public class Formulario extends javax.swing.JFrame {
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
         panelDatos.add(etiqueta("Departamento Origen:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
-        cmbOrigenCompra = new JComboBox<>(DEPARTAMENTOS);
+        cmbOrigenCompra = new JComboBox<>();
         panelDatos.add(cmbOrigenCompra, gbc);
 
         gbc.gridx = 2; gbc.weightx = 0;
         panelDatos.add(etiqueta("Departamento Destino:"), gbc);
         gbc.gridx = 3; gbc.weightx = 1;
-        cmbDestinoCompra = new JComboBox<>(DEPARTAMENTOS);
-        cmbDestinoCompra.setSelectedIndex(2);  // Santa Cruz por defecto
+        cmbDestinoCompra = new JComboBox<>();
         panelDatos.add(cmbDestinoCompra, gbc);
 
         // ---- Botones de compra ----
@@ -226,8 +227,11 @@ public class Formulario extends javax.swing.JFrame {
 
         // ---- Feedback / Calificaci\u00f3n ----
         JPanel panelFeedback = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
-        panelFeedback.setBorder(crearBorde("Calificar Destino (despu\u00e9s de comprar)", AMBAR));
-        panelFeedback.add(etiqueta("Su calificaci\u00f3n (1-100):"));
+        panelFeedback.setBorder(crearBorde("Calificar Destino (solo vuelos confirmados)", AMBAR));
+        panelFeedback.add(etiqueta("Nro. Boleto:"));
+        txtBoletoCalificar = new JTextField(8);
+        panelFeedback.add(txtBoletoCalificar);
+        panelFeedback.add(etiqueta("Calificaci\u00f3n (1-100):"));
         spnFeedback = new JSpinner(new SpinnerNumberModel(80, 1, 100, 1));
         panelFeedback.add(spnFeedback);
         JButton btnCalificar = boton("Enviar Calificaci\u00f3n");
@@ -288,12 +292,8 @@ public class Formulario extends javax.swing.JFrame {
         JPanel panelGestion = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
         panelGestion.setBorder(crearBorde("Gesti\u00f3n del Registro (\u00c1rbol B)", ROJO));
         
-        String[] deptosFiltro = new String[DEPARTAMENTOS.length + 1];
-        deptosFiltro[0] = "Todos";
-        System.arraycopy(DEPARTAMENTOS, 0, deptosFiltro, 1, DEPARTAMENTOS.length);
-        
-        cmbOrigenFiltro = new JComboBox<>(deptosFiltro);
-        cmbDestinoFiltro = new JComboBox<>(deptosFiltro);
+        cmbOrigenFiltro = new JComboBox<>();
+        cmbDestinoFiltro = new JComboBox<>();
         
         panelGestion.add(etiqueta("Origen:"));
         panelGestion.add(cmbOrigenFiltro);
@@ -601,8 +601,8 @@ public class Formulario extends javax.swing.JFrame {
             }
 
             int nroBoleto = siguienteBoleto++;
-            int origenInt  = obtenerIndiceDepartamento(origenSeleccionado)  + 1;
-            int destinoInt = obtenerIndiceDepartamento(destinoSeleccionado) + 1;
+            int origenInt  = obtenerIndiceDepartamento(origenSeleccionado);
+            int destinoInt = obtenerIndiceDepartamento(destinoSeleccionado);
 
             Boleto boleto = new Boleto(nroBoleto, nombre, precioCalculado, origenInt, destinoInt);
             registroPasajerosGlobal.nuevoPasajero(boleto);
@@ -623,9 +623,7 @@ public class Formulario extends javax.swing.JFrame {
             appendCompra("  Precio:      Bs. " + precioCalculado + "\n");
             appendCompra("+========================================+\n");
             appendCompra("\n>> Guarde su numero de boleto: " + nroBoleto + "\n");
-            appendCompra(">> Puede calificar su destino abajo.\n\n");
-
-            ultimoDestinoComprado = destinoSeleccionado;
+            appendCompra(">> Puede calificar el destino cuando Recepcion confirme su vuelo.\n\n");
 
             // Limpiar estado
             precioCalculado = 0;
@@ -637,32 +635,45 @@ public class Formulario extends javax.swing.JFrame {
     }
 
     /**
-     * El pasajero califica su destino. La calificaci\u00f3n se promedia
-     * con la calificaci\u00f3n actual del lugar en el ranking, actualizando
-     * el mont\u00edculo m\u00e1ximo autom\u00e1ticamente.
+     * El pasajero califica su destino SOLO SI su boleto esta confirmado.
      */
     private void accionCalificarDestino() {
-        if (ultimoDestinoComprado == null) {
-            mostrarError("Primero debe comprar un pasaje para poder calificar el destino.");
-            return;
-        }
-        int feedback = (int) spnFeedback.getValue();
+        try {
+            int nro = Integer.parseInt(txtBoletoCalificar.getText().trim());
+            if (!boletosConfirmados.contains(nro)) {
+                mostrarError("El boleto #" + nro + " no ha sido confirmado por recepcion todavia.");
+                return;
+            }
+            
+            Boleto b = registroPasajerosGlobal.buscarBoleto(new Boleto(nro, "", 0, 0, 0));
+            if (b == null) {
+                mostrarError("El boleto #" + nro + " no existe.");
+                return;
+            }
+            String destinoStr = obtenerNombreDepartamento(b.getDestino());
 
-        int pos = encontrarPosicionLugar(ultimoDestinoComprado);
-        if (pos != -1) {
-            Lugar lugar = ranking.verLugarEnPosicion(pos);
-            int calAnterior = lugar.getCalifacion();
-            int nuevaCalif  = (calAnterior + feedback) / 2;
-            ranking.actualizarCalificacion(pos, nuevaCalif);
+            int feedback = (int) spnFeedback.getValue();
+            int pos = encontrarPosicionLugar(destinoStr);
+            
+            if (pos != -1) {
+                Lugar lugar = ranking.verLugarEnPosicion(pos);
+                int calAnterior = lugar.getCalifacion();
+                int nuevaCalif  = (calAnterior + feedback) / 2;
+                ranking.actualizarCalificacion(pos, nuevaCalif);
 
-            appendCompra("[OK] Calificacion enviada para " + ultimoDestinoComprado + "\n");
-            appendCompra("     Calificacion anterior: " + calAnterior
-                    + " -> Nueva: " + nuevaCalif + "\n");
-            appendCompra("     (Vea el ranking actualizado en la pestana 'Ranking de Destinos')\n\n");
-        } else {
-            appendCompra("[!] No se encontro " + ultimoDestinoComprado + " en el ranking.\n");
+                appendCompra("[OK] Calificacion enviada para " + destinoStr + "\n");
+                appendCompra("     Calificacion anterior: " + calAnterior
+                        + " -> Nueva: " + nuevaCalif + "\n");
+                appendCompra("     (Vea el ranking actualizado en la pestana 'Ranking de Destinos')\n\n");
+                
+                boletosConfirmados.remove(nro); // Solo califica una vez
+                txtBoletoCalificar.setText("");
+            } else {
+                appendCompra("[!] No se encontro " + destinoStr + " en el ranking.\n");
+            }
+        } catch (NumberFormatException ex) {
+            mostrarError("Ingrese un nro de boleto valido.");
         }
-        ultimoDestinoComprado = null;
     }
 
     // ================================================================
@@ -702,6 +713,7 @@ public class Formulario extends javax.swing.JFrame {
             boolean existe = registroPasajerosGlobal.contieneBoleto(new Boleto(nro, "", 0, 0, 0));
 
             if (existe) {
+                boletosConfirmados.add(nro);
                 Boleto b = registroPasajerosGlobal.buscarBoleto(new Boleto(nro, "", 0, 0, 0));
                 appendRecepcion("\n+======================================+\n");
                 appendRecepcion("|     VUELO CONFIRMADO                 |\n");
@@ -950,10 +962,23 @@ public class Formulario extends javax.swing.JFrame {
 
     private void actualizarCombosVertices() {
         String[] vertices = obtenerVerticesComoArray();
+        
+        // Tab 3
         cmbOrigenArista.setModel(new DefaultComboBoxModel<>(vertices));
         cmbDestinoArista.setModel(new DefaultComboBoxModel<>(vertices));
         cmbOrigenDijkstra.setModel(new DefaultComboBoxModel<>(vertices));
         cmbDestinoDijkstra.setModel(new DefaultComboBoxModel<>(vertices));
+        
+        // Tab 1
+        cmbOrigenCompra.setModel(new DefaultComboBoxModel<>(vertices));
+        cmbDestinoCompra.setModel(new DefaultComboBoxModel<>(vertices));
+        
+        // Tab 2
+        String[] verticesFiltro = new String[vertices.length + 1];
+        verticesFiltro[0] = "Todos";
+        System.arraycopy(vertices, 0, verticesFiltro, 1, vertices.length);
+        cmbOrigenFiltro.setModel(new DefaultComboBoxModel<>(verticesFiltro));
+        cmbDestinoFiltro.setModel(new DefaultComboBoxModel<>(verticesFiltro));
     }
 
     private String[] obtenerVerticesComoArray() {
@@ -1033,20 +1058,20 @@ public class Formulario extends javax.swing.JFrame {
         return baos.toString();
     }
 
-    /** Devuelve el \u00edndice (0-based) de un departamento en el array. */
+    /** Mapea un nombre a un ID \u00fanico e hist\u00f3rico para evitar que cambie si se eliminan v\u00e9rtices. */
     private int obtenerIndiceDepartamento(String nombre) {
-        for (int i = 0; i < DEPARTAMENTOS.length; i++) {
-            if (DEPARTAMENTOS[i].equals(nombre)) return i;
+        if (!ciudadesHistoricas.contains(nombre)) {
+            ciudadesHistoricas.add(nombre);
         }
-        return -1;
+        return ciudadesHistoricas.indexOf(nombre);
     }
 
-    /** Convierte el n\u00famero de departamento (1-based) a nombre. */
-    private String obtenerNombreDepartamento(int numero) {
-        if (numero >= 1 && numero <= DEPARTAMENTOS.length) {
-            return DEPARTAMENTOS[numero - 1];
+    /** Convierte el ID al nombre hist\u00f3rico de la ciudad. */
+    private String obtenerNombreDepartamento(int id) {
+        if (id >= 0 && id < ciudadesHistoricas.size()) {
+            return ciudadesHistoricas.get(id);
         }
-        return "Desconocido (" + numero + ")";
+        return "Desconocido (" + id + ")";
     }
 
     /**
