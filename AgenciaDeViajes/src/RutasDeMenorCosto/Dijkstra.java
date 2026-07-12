@@ -25,7 +25,6 @@ public class Dijkstra<T extends Comparable<T>> {
     public Dijkstra(Grafo_Pesado<T> unGrafo) {
         this.elGrafo = unGrafo;
     }
-
     
     public void ejecutar(T verticeOrigen) {
         
@@ -117,5 +116,15 @@ public class Dijkstra<T extends Comparable<T>> {
             throw new IllegalArgumentException("El vértice destino no existe.");
         }
         return costos.getCosto(posDestino);
+    }
+
+    public void mostrarResultado(T destino) {
+        double costo = obtenerCostoMinimoHacia(destino);
+        List<T> camino = obtenerCaminoMasCorto(destino);
+        
+        System.out.println("Destino [" + destino + "]:");
+        System.out.println("  -> Costo Mínimo: " + costo);
+        System.out.println("  -> Ruta Óptima : " + camino);
+        System.out.println("------------------------------------");
     }
 }

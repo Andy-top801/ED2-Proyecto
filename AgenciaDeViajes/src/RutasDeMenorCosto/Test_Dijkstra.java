@@ -1,16 +1,5 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
 package RutasDeMenorCosto;
 
-
-import java.util.List;
-
-/**
- *
- * @author jherargonzales
- */
 public class Test_Dijkstra {
 
     /**
@@ -57,22 +46,30 @@ public class Test_Dijkstra {
         dijkstra.ejecutar(origen);
         
         // 5. Mostramos los resultados hacia los destinos más lejanos
-        mostrarResultado(dijkstra, "F");
-        mostrarResultado(dijkstra, "G");
-        mostrarResultado(dijkstra, "H"); // El destino final más lejano
+        dijkstra.mostrarResultado("F");
+        dijkstra.mostrarResultado("G");
+        dijkstra.mostrarResultado("H"); // El destino final más lejano
         
-        System.out.println("--- PRUEBA FINALIZADA ---");
-    }
-    
-    // Método auxiliar para imprimir bonito
-    private static void mostrarResultado(Dijkstra<String> algoritmo, String destino) {
-        double costo = algoritmo.obtenerCostoMinimoHacia(destino);
-        List<String> camino = algoritmo.obtenerCaminoMasCorto(destino);
+        System.out.println("--- PRUEBA DE DIJKSTRA FINALIZADA ---\n");
         
-        System.out.println("Destino [" + destino + "]:");
-        System.out.println("  -> Costo Mínimo: " + costo);
-        System.out.println("  -> Ruta Óptima : " + camino);
-        System.out.println("------------------------------------");
+        // ===================== PRUEBA DE PRIM =====================
+        System.out.println("--- INICIANDO PRUEBA DEL ALGORITMO DE PRIM ---\n");
+        
+        // Usamos el mismo grafo ya construido
+        Prim<String> prim = new Prim<>(miGrafo);
+        
+        System.out.println("Ejecutando Prim desde el vértice origen: [" + origen + "]\n");
+        prim.ejecutar(origen);
+        
+        // Mostramos el resultado completo del MST
+        prim.mostrarResultadoMST();
+        
+        // Mostramos el grafo del MST
+        System.out.println("\nGrafo del MST:");
+        Grafo_Pesado<String> grafoMST = prim.obtenerGrafoMST();
+        System.out.println(grafoMST.toString());
+        
+        System.out.println("--- PRUEBA DE PRIM FINALIZADA ---");
     }
     
 }
