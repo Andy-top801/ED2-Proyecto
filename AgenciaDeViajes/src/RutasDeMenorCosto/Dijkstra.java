@@ -102,7 +102,7 @@ public class Dijkstra<T extends Comparable<T>> {
 
         return caminoVertices;
     }
-
+    
     /**
      * Devuelve el costo total para llegar al destino.
      */

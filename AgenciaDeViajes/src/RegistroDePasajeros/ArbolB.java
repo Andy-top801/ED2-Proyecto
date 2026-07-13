@@ -8,7 +8,6 @@ import java.util.*;
  */
 public abstract class ArbolB<T extends Comparable<T>> extends
         ArbolMViasBase<T> implements Prub<T> {
-   // private int nroDatos; // te pedira implementar los metodos de arbol Binario Base
 
     public ArbolB() {
         super.orden = 3;
@@ -62,7 +61,6 @@ public abstract class ArbolB<T extends Comparable<T>> extends
         do {
             int posicionMedia = (nodoActual.datos.size() - 1) / 2;
             T datoMedia = nodoActual.datos.get(posicionMedia);
-
             // Crear hijo izquierdo con datos[0..posicionMedia-1]
             NodoMVias<T> nodoHijoI = new NodoMVias<>(orden);
             for (int i = 0; i < posicionMedia; i++) {
@@ -72,9 +70,7 @@ public abstract class ArbolB<T extends Comparable<T>> extends
             for (int i = 0; i <= posicionMedia; i++) {
                 nodoHijoI.hijos.set(i, nodoActual.hijos.get(i));
             }
-
             nodoActual.datos.remove(posicionMedia);
-
             // Crear hijo derecho con datos[posicionMedia..fin]
             NodoMVias<T> nodoHijoD = new NodoMVias<>(orden);
             int nroDatosRestantes = nroDeDatosNoVacios(nodoActual);
@@ -86,7 +82,6 @@ public abstract class ArbolB<T extends Comparable<T>> extends
             for (int i = 0; i <= nroDatosHijoD; i++) {
                 nodoHijoD.hijos.set(i, nodoActual.hijos.get(posicionMedia + 1 + i));
             }
-
             if (!pilaDeNodos.isEmpty()) {
                 nodoPadre = pilaDeNodos.pop();
             } else {
@@ -133,347 +128,263 @@ public abstract class ArbolB<T extends Comparable<T>> extends
         }
     }
 
-    /**
-     * Elimina el dato en la posicion indicada del nodo, desplazando los datos
-     * restantes a la izquierda para mantener la contigüidad.
-     * 
-     * SOLO desplaza datos, NO desplaza hijos.
-     * ¿Por qué? Porque desde eliminar() este método se llama únicamente sobre
-     * nodos HOJA (cuyos hijos son todos NODO_VACIO, así que no hay nada que mover).
-     * 
-     * Para eliminar una clave del padre junto con un hijo (caso fusión),
-     * usamos el método separado eliminarClaveYHijoDerecho.
-     */
-    public void eliminarDatoPosicion(NodoMVias<T> nodoMVias, int posicionEliminar) {
-        int nroDatos = nroDeDatosNoVacios(nodoMVias);
-        // Desplazar las claves a la izquierda a partir de posicionEliminar
-        for (int i = posicionEliminar; i < nroDatos - 1; i++) {
-            nodoMVias.datos.set(i, nodoMVias.datos.get(i + 1));
+    private void desplazarDatosALaDerecha(NodoMVias<T> elNodo, int posDelPrimerMayor){
+        for (int posDatoAMover = nroDeDatosNoVacios(elNodo) - 1; posDatoAMover >= posDelPrimerMayor; posDatoAMover--) {
+            T datoEnTurno = elNodo.datos.get(posDatoAMover);
+            elNodo.datos.set(posDatoAMover + 1, datoEnTurno);
+            // Movemos el hijo de la derecha del dato en turno
+            NodoMVias<T> hijoEnTurno = elNodo.hijos.get(posDatoAMover + 1); 
+            elNodo.hijos.set(posDatoAMover + 2, hijoEnTurno);
         }
-        // Limpiar la última posición que quedó duplicada
-        nodoMVias.datos.set(nroDatos - 1, (T) DATO_VACIO);
+        // Desplaza el hijo de la izquierda del bloque que acabamos de mover, 
+        // para no aplastarlo ni perderlo en la memoria.
+        elNodo.hijos.set(posDelPrimerMayor + 1, elNodo.hijos.get(posDelPrimerMayor));
     }
 
-    /**
-     * Elimina la clave en la posición indicada del nodo Y TAMBIÉN elimina
-     * el hijo derecho de esa clave (posicionEliminar + 1), desplazando
-     * los demás hijos a la izquierda.
-     * 
-     * Se usa en la FUSIÓN: cuando fusionamos dos hijos del padre,
-     * el resultado queda en el hijo IZQUIERDO (posicionEliminar),
-     * y el hijo DERECHO (posicionEliminar + 1) se descarta.
-     * 
-     * Ejemplo visual (orden 4, padre con claves [10, 20, 30] e hijos [H0, H1, H2, H3]):
-     *   Si eliminamos clave en posición 1 (el 20), fusionamos H1 con H2:
-     *   - H1 absorbe la clave 20 y los datos de H2 → H1 queda con la fusión
-     *   - H2 se descarta
-     *   - Resultado: claves [10, 30, null], hijos [H0, H1, H3, null]
-     */
-    private void eliminarClaveYHijoDerecho(NodoMVias<T> nodo, int posicionEliminar) {
-        int nroDatos = nroDeDatosNoVacios(nodo);
-
-        // 1. Desplazar las claves a la izquierda
-        for (int i = posicionEliminar; i < nroDatos - 1; i++) {
-            nodo.datos.set(i, nodo.datos.get(i + 1));
-        }
-        nodo.datos.set(nroDatos - 1, (T) DATO_VACIO);
-
-        // 2. Desplazar los hijos a la izquierda desde posicionEliminar + 1
-        //    (el hijo izquierdo en posicionEliminar se conserva, el derecho en
-        //     posicionEliminar + 1 se descarta al ser sobrescrito)
-        for (int i = posicionEliminar + 1; i < nroDatos; i++) {
-            nodo.hijos.set(i, nodo.hijos.get(i + 1));
-        }
-        nodo.hijos.set(nroDatos, NODO_VACIO);
-    }
-
-    /**
-     * Obtiene el nodo que contiene al predecesor inorden.
-     * El predecesor es el dato más grande del subárbol izquierdo,
-     * es decir, bajamos siempre por el hijo más a la derecha hasta llegar a una hoja.
-     * 
-     * Va apilando los nodos por los que pasa en pilaDeNodos para que
-     * luego prestarseOFusionarse pueda subir si es necesario.
-     */
-    private NodoMVias<T> obtenerNodoDelPredecesor(NodoMVias<T> nodoActual,
-                                                   Stack<NodoMVias<T>> pilaDeNodos) {
-        // Bajamos siempre por el hijo más a la derecha hasta llegar a una hoja
-        while (!esNodoHoja(nodoActual)) {
-            pilaDeNodos.push(nodoActual);
-            // El hijo más a la derecha está en la posición = nroDeDatosNoVacios
-            nodoActual = nodoActual.hijos.get(nroDeDatosNoVacios(nodoActual));
-        }
-        return nodoActual;
-    }
-
-    /**
-     * Método que se encarga de rebalancear el árbol B cuando un nodo
-     * queda con menos datos que el mínimo permitido después de una eliminación.
-     * 
-     * Estrategia (en orden de prioridad):
-     * 1. PRESTAR del hermano DERECHO: si el hermano derecho tiene más datos
-     *    que el mínimo, le pedimos prestado su menor dato, rotando por el padre.
-     * 2. PRESTAR del hermano IZQUIERDO: si el hermano izquierdo tiene más datos
-     *    que el mínimo, le pedimos prestado su mayor dato, rotando por el padre.
-     * 3. FUSIONAR: si ningún hermano puede prestar, fusionamos el nodo insuficiente
-     *    con un hermano, bajando la clave separadora del padre al nodo fusionado.
-     *    Si el padre también queda bajo el mínimo, se repite el proceso hacia arriba.
-     */
-    public void prestarseOFusionarse(NodoMVias<T> nodoInsuficiente, Stack<NodoMVias<T>> pilaDeNodos) {
-
-        // Este bucle permite propagar la fusión hacia arriba si el padre
-        // también queda por debajo del mínimo después de cederle una clave
-        while (true) {
-
-            // ===== CASO ESPECIAL: el nodo insuficiente es la raíz =====
-            // Si la pila está vacía, no hay padre al que pedirle nada.
-            // Esto pasa cuando la fusión propagó hasta la raíz y la raíz
-            // quedó con 0 claves. En ese caso, su único hijo pasa a ser la nueva raíz.
-            if (pilaDeNodos.isEmpty()) {
-                if (nroDeDatosNoVacios(nodoInsuficiente) == 0
-                        && !esNodoHoja(nodoInsuficiente)) {
-                    // La raíz se quedó sin claves, su hijo 0 es la nueva raíz
-                    raiz = nodoInsuficiente.hijos.get(0);
-                }
-                return; // Ya no hay nada más que hacer
-            }
-
-            // ===== Obtener el padre y la posición del nodo insuficiente =====
-            NodoMVias<T> nodoPadre = pilaDeNodos.pop();
-
-            // Buscar en qué posición de los hijos del padre está nuestro nodo
-            int posHijo = 0;
-            while (nodoPadre.hijos.get(posHijo) != nodoInsuficiente) {
-                posHijo++;
-            }
-
-            // ===== Identificar hermanos disponibles =====
-            // hermano derecho: existe si posHijo < nroDeDatosNoVacios(nodoPadre)
-            // hermano izquierdo: existe si posHijo > 0
-            NodoMVias<T> hermanoDer = (posHijo < nroDeDatosNoVacios(nodoPadre))
-                    ? nodoPadre.hijos.get(posHijo + 1) : null;
-            NodoMVias<T> hermanoIzq = (posHijo > 0)
-                    ? nodoPadre.hijos.get(posHijo - 1) : null;
-
-            // =====================================================
-            // CASO 1: PRESTAR DEL HERMANO DERECHO
-            // =====================================================
-            // Condición: el hermano derecho existe y tiene más datos que el mínimo
-            //
-            // Rotación:
-            //   - La clave del padre (que separa nodoInsuficiente del hermanoDer)
-            //     baja al nodoInsuficiente
-            //   - La menor clave del hermanoDer sube al padre para ocupar su lugar
-            //
-            // Ejemplo (orden 3, min datos = 1):
-            //   Padre: [15]   Insuficiente: []   HermanoDer: [20, 25]
-            //   → El 15 baja al insuficiente, el 20 sube al padre
-            //   Padre: [20]   Insuficiente: [15]  HermanoDer: [25]
-            if (hermanoDer != null && nroDeDatosNoVacios(hermanoDer) > getNroMinimoDeDatos()) {
-                // La clave del padre que separa ambos nodos está en posHijo
-                T datoPadre = nodoPadre.datos.get(posHijo);
-                // La menor clave del hermano derecho (la que subirá al padre)
-                T datoHermanoDer = hermanoDer.datos.get(0);
-
-                // 1. Bajar la clave del padre al nodo insuficiente
-                insertarDatoOrdenadoEnElNodo(nodoInsuficiente, datoPadre);
-
-                // 2. Subir la clave del hermano derecho al padre (reemplazo directo,
-                //    NO eliminamos ni insertamos en el padre para no alterar sus hijos)
-                nodoPadre.datos.set(posHijo, datoHermanoDer);
-
-                // 3. Eliminar la clave prestada del hermano derecho
-                eliminarDatoPosicion(hermanoDer, 0);
-
-                // Si los nodos NO son hojas, también hay que mover el hijo
-                // más a la izquierda del hermano derecho al nodo insuficiente
-                if (!esNodoHoja(hermanoDer)) {
-                    // El primer hijo del hermano derecho pasa a ser el último hijo del insuficiente
-                    int nroDatosInsuficiente = nroDeDatosNoVacios(nodoInsuficiente);
-                    nodoInsuficiente.hijos.set(nroDatosInsuficiente, hermanoDer.hijos.get(0));
-                    // Desplazar los hijos del hermano derecho a la izquierda
-                    int nroDatosHermano = nroDeDatosNoVacios(hermanoDer);
-                    for (int j = 0; j < nroDatosHermano + 1; j++) {
-                        hermanoDer.hijos.set(j, hermanoDer.hijos.get(j + 1));
-                    }
-                    hermanoDer.hijos.set(nroDatosHermano + 1, NODO_VACIO);
-                }
-
-                return; // El préstamo fue exitoso, no hay que propagar
-
-            // =====================================================
-            // CASO 2: PRESTAR DEL HERMANO IZQUIERDO
-            // =====================================================
-            // Condición: el hermano izquierdo existe y tiene más datos que el mínimo
-            //
-            // Rotación:
-            //   - La clave del padre (que separa hermanoIzq del nodoInsuficiente)
-            //     baja al nodoInsuficiente
-            //   - La mayor clave del hermanoIzq sube al padre
-            //
-            // Ejemplo (orden 3, min datos = 1):
-            //   Padre: [15]   HermanoIzq: [5, 10]   Insuficiente: []
-            //   → El 15 baja al insuficiente, el 10 sube al padre
-            //   Padre: [10]   HermanoIzq: [5]   Insuficiente: [15]
-            } else if (hermanoIzq != null && nroDeDatosNoVacios(hermanoIzq) > getNroMinimoDeDatos()) {
-                // La clave del padre que separa ambos está en posHijo - 1
-                T datoPadre = nodoPadre.datos.get(posHijo - 1);
-                int nroDatosHermanoIzq = nroDeDatosNoVacios(hermanoIzq);
-                // La mayor clave del hermano izquierdo (la que subirá al padre)
-                T datoHermanoIzq = hermanoIzq.datos.get(nroDatosHermanoIzq - 1);
-
-                // 1. Bajar la clave del padre al nodo insuficiente
-                insertarDatoOrdenadoEnElNodo(nodoInsuficiente, datoPadre);
-
-                // 2. Subir la clave del hermano izquierdo al padre (reemplazo directo)
-                nodoPadre.datos.set(posHijo - 1, datoHermanoIzq);
-
-                // 3. Eliminar la clave prestada del hermano izquierdo
-                eliminarDatoPosicion(hermanoIzq, nroDatosHermanoIzq - 1);
-
-                // Si los nodos NO son hojas, también hay que mover el hijo
-                // más a la derecha del hermano izquierdo al nodo insuficiente
-                if (!esNodoHoja(hermanoIzq)) {
-                    // Desplazar los hijos del insuficiente a la derecha para hacer espacio
-                    int nroDatosInsuficiente = nroDeDatosNoVacios(nodoInsuficiente);
-                    for (int j = nroDatosInsuficiente; j > 0; j--) {
-                        nodoInsuficiente.hijos.set(j, nodoInsuficiente.hijos.get(j - 1));
-                    }
-                    // El último hijo del hermano izquierdo pasa a ser el primer hijo del insuficiente
-                    nodoInsuficiente.hijos.set(0, hermanoIzq.hijos.get(nroDatosHermanoIzq));
-                    hermanoIzq.hijos.set(nroDatosHermanoIzq, NODO_VACIO);
-                }
-
-                return; // El préstamo fue exitoso, no hay que propagar
-
-            // =====================================================
-            // CASO 3: FUSIONAR (MERGE)
-            // =====================================================
-            // Ningún hermano puede prestar → fusionamos.
-            // Siempre fusionamos en el hijo IZQUIERDO:
-            //   - Bajamos la clave separadora del padre al hijo izquierdo
-            //   - Pasamos todos los datos del hijo derecho al hijo izquierdo
-            //   - Eliminamos la clave y el hijo derecho del padre
-            //   - Si el padre queda bajo el mínimo, repetimos el proceso hacia arriba
-            //
-            // Ejemplo (orden 3, min datos = 1):
-            //   Padre: [15]   HijoIzq: [10]   HijoDer: [20]   ← fusionamos
-            //   → Bajamos el 15 al HijoIzq, movemos el 20 al HijoIzq
-            //   → HijoIzq: [10, 15, 20]   (se eliminan clave y HijoDer del padre)
-            //   → El padre quedó con 0 claves → si es la raíz, HijoIzq se vuelve raíz
+    private void eliminarHoja(NodoMVias<T> nodoActual,Stack<NodoMVias<T>> pilaDeNodos,Stack<Integer>pilaDePosicionesDeNodos,int posDelDatoAEliminar){
+        eliminarDatoDelNodo(nodoActual,posDelDatoAEliminar);
+        while (!esNodoVacio(nodoActual) && nroDeDatosNoVacios(nodoActual) < getNroMinimoDeDatos()) { 
+            if (!pilaDeNodos.isEmpty()) {
+                NodoMVias<T> nodoPadre = pilaDeNodos.pop();
+                int posDelHijoEnNodoPadre = pilaDePosicionesDeNodos.pop();
+                prestarOrFusionar(nodoActual,nodoPadre,posDelHijoEnNodoPadre);
+                nodoActual = nodoPadre;
             } else {
-                // Determinar cuál par de hermanos fusionar
-                int posFusion; // posición de la clave separadora en el padre
-                NodoMVias<T> hijoIzq;
-                NodoMVias<T> hijoDer;
-
-                if (posHijo > 0) {
-                    // Fusionar con el hermano izquierdo
-                    // El nodoInsuficiente es el hijo derecho, hermanoIzq es el hijo izquierdo
-                    posFusion = posHijo - 1;
-                    hijoIzq = hermanoIzq;
-                    hijoDer = nodoInsuficiente;
-                } else {
-                    // posHijo == 0, fusionar con el hermano derecho
-                    // El nodoInsuficiente es el hijo izquierdo, hermanoDer es el hijo derecho
-                    posFusion = posHijo; // que es 0
-                    hijoIzq = nodoInsuficiente;
-                    hijoDer = hermanoDer;
-                }
-
-                // 1. Bajar la clave separadora del padre al hijo izquierdo
-                T claveSeparadora = nodoPadre.datos.get(posFusion);
-                insertarDatoOrdenadoEnElNodo(hijoIzq, claveSeparadora);
-
-                // 2. Pasar todos los datos del hijo derecho al hijo izquierdo
-                int nroDatosHijoDer = nroDeDatosNoVacios(hijoDer);
-                for (int j = 0; j < nroDatosHijoDer; j++) {
-                    insertarDatoOrdenadoEnElNodo(hijoIzq, hijoDer.datos.get(j));
-                }
-
-                // 3. Si NO son hojas, también pasar los hijos del hijo derecho
-                //    al hijo izquierdo (se colocan al final, después de los hijos existentes)
-                if (!esNodoHoja(hijoDer)) {
-                    // Calcular dónde empezar a colocar los hijos del hijoDer en el hijoIzq
-                    // Los hijos del hijoIzq ya ocupan posiciones 0..nroDatosHijoIzq
-                    // (antes de la fusión el hijoIzq tenía nroDatosHijoIzq datos,
-                    //  ahora tiene más, pero los hijos originales están en las primeras posiciones)
-                    int posInicioHijos = nroDeDatosNoVacios(hijoIzq) - nroDatosHijoDer;
-                    for (int j = 0; j <= nroDatosHijoDer; j++) {
-                        hijoIzq.hijos.set(posInicioHijos + j, hijoDer.hijos.get(j));
-                    }
-                }
-
-                // 4. Eliminar la clave separadora y el hijo derecho del padre
-                //    eliminarClaveYHijoDerecho quita la clave en posFusion
-                //    y desplaza los hijos desde posFusion+1, descartando al hijoDer
-                eliminarClaveYHijoDerecho(nodoPadre, posFusion);
-
-                // 5. Verificar si el padre también quedó por debajo del mínimo
-                //    Si el padre es la raíz y quedó con 0 claves, el hijoIzq se vuelve raíz
-                if (nodoPadre == raiz && nroDeDatosNoVacios(nodoPadre) == 0) {
-                    raiz = hijoIzq;
-                    return;
-                }
-
-                // Si el padre NO es la raíz y quedó bajo el mínimo, propagamos
-                if (nroDeDatosNoVacios(nodoPadre) < getNroMinimoDeDatos()) {
-                    // El padre ahora es el nodo insuficiente, seguimos el bucle
-                    nodoInsuficiente = nodoPadre;
-                    // El bucle continuará con el siguiente padre de la pila
-                } else {
-                    return; // El padre sigue cumpliendo el mínimo, terminamos
-                }
+                nodoActual = NODO_VACIO;
             }
-        } // fin del while(true)
+        }
+                    
+        if (!esNodoHoja(raiz) && nroDeDatosNoVacios(raiz) == 0) {
+           raiz = raiz.hijos.get(0);
+        }
+    }
+    
+    private void eliminarDatoDelNodo(NodoMVias<T> nodoActual, int  posDelDatoAEliminar){
+        int nroDatos = nroDeDatosNoVacios(nodoActual);
+        //  Desplazamos los DATOS 
+        for (int i = posDelDatoAEliminar; i < nroDatos - 1; i++) {
+            nodoActual.datos.set(i, nodoActual.datos.get(i + 1));
+        }
+        nodoActual.datos.set(nroDatos - 1, (T) DATO_VACIO); // Limpiar último dato
+    }
+    
+    private void eliminarHijoDelNodo(NodoMVias<T> elNodo, int posDelHijoAEliminar) {
+        int nroDatos = nroDeDatosNoVacios(elNodo);
+        // Desplazamos los hijos un espacio hacia la izquierda
+        for (int i = posDelHijoAEliminar; i < nroDatos; i++) {
+            elNodo.hijos.set(i, elNodo.hijos.get(i + 1));
+        }
+        // eliminamos el último hijo que quedó duplicado
+        elNodo.hijos.set(nroDatos, NODO_VACIO);
+    }
+    
+    private void prestarDelHermanoDerecho(NodoMVias<T> nodoActual,NodoMVias<T> nodoPadre, int posHermanoDerecho, int posDelHijoEnNodoPadre){
+        NodoMVias<T> nodoHermanoDerecho = nodoPadre.hijos.get(posHermanoDerecho);
+        NodoMVias<T> hijoDelHermanoDerecho = NODO_VACIO;
+        T datoDelHermanoDerecho = nodoHermanoDerecho.datos.get(0);
+        
+        // Si tiene hijo el datoDelHermanoDerecho 
+        if (!esNodoHoja(nodoHermanoDerecho)) {
+            hijoDelHermanoDerecho = nodoHermanoDerecho.hijos.get(0);
+            eliminarHijoDelNodo(nodoHermanoDerecho, 0);
+        }
+        
+        // eliminamos el datoDelHermano derecho
+        eliminarDatoDelNodo(nodoHermanoDerecho,0);
+        
+        // guardamos el datoDelPadre antes de reemplazarlo
+        T datoDelPadre = nodoPadre.datos.get(posDelHijoEnNodoPadre);
+        
+        // reemplazamos al padre por el dato del hermanoDerecho
+        nodoPadre.datos.set(posDelHijoEnNodoPadre, datoDelHermanoDerecho);
+        
+        // colocamos el hijoPrestado del hermanoDerecho como que tendran los mayores del ultimo dato
+        nodoActual.hijos.set(nroDeDatosNoVacios(nodoActual)+1, hijoDelHermanoDerecho);
+        
+        // colocamos el datoDelPadre en el ultimo espacio ya que siempre sera mayor
+         nodoActual.datos.set(nroDeDatosNoVacios(nodoActual), datoDelPadre); 
+    }
+    
+    private void prestarDelHermanoIzquierdo(NodoMVias<T> nodoActual,NodoMVias<T> nodoPadre, int posHermanoIzquierdo, int posDelHijoEnNodoPadre){
+        NodoMVias<T> nodoHermanoIzquierdo = nodoPadre.hijos.get(posHermanoIzquierdo);
+        int posUltimoDatoHermano = nroDeDatosNoVacios(nodoHermanoIzquierdo) - 1;
+        T datoDelHermanoIzquierdo = nodoHermanoIzquierdo.datos.get(posUltimoDatoHermano);
+        NodoMVias<T> hijoDelHermanoIzquierdo = NODO_VACIO;
+        
+        if (!esNodoHoja(nodoHermanoIzquierdo)) {
+            //el último hijo está en el índice N
+            hijoDelHermanoIzquierdo = nodoHermanoIzquierdo.hijos.get(nroDeDatosNoVacios(nodoHermanoIzquierdo));
+            // Como es el último, no hay que desplazar nada, solo lo borramos
+            nodoHermanoIzquierdo.hijos.set(nroDeDatosNoVacios(nodoHermanoIzquierdo), NODO_VACIO);
+        }
+
+        // Eliminamos el último dato de forma segura
+        eliminarDatoDelNodo(nodoHermanoIzquierdo, posUltimoDatoHermano);
+        
+        // Rotación de datos con el padre
+        // El separador está en la misma posición que el hermano izquierdo
+        T datoDelPadre = nodoPadre.datos.get(posHermanoIzquierdo); 
+        nodoPadre.datos.set(posHermanoIzquierdo, datoDelHermanoIzquierdo);
+
+        // desplazamos los datos una pos a la derecha 
+        desplazarDatosALaDerecha(nodoActual, 0);
+
+        //Insertar los elementos robados en los huecos que acaban de quedar en el índice 0
+        nodoActual.datos.set(0, datoDelPadre);
+        nodoActual.hijos.set(0, hijoDelHermanoIzquierdo);
+    }
+    
+    private void fusionarConHermanoDerecho(NodoMVias<T> nodoActual, NodoMVias<T> nodoPadre, int posHermanoDerecho){
+        NodoMVias<T> hermanoDerecho = nodoPadre.hijos.get(posHermanoDerecho);
+        int indiceDatoDestino = nroDeDatosNoVacios(nodoActual); 
+        
+        //  Bajamos el datoDelPadre 
+        T datoDelPadre = nodoPadre.datos.get(posHermanoDerecho - 1);
+        nodoActual.datos.set(indiceDatoDestino, datoDelPadre);
+        indiceDatoDestino++; // Avanzamos a la siguiente espacio libre de dato
+        int indiceHijoDestino = indiceDatoDestino;
+        
+        // Copiamos los datos del hermano derecho
+        int datosHermano = nroDeDatosNoVacios(hermanoDerecho);
+        for (int i = 0; i < datosHermano; i++) {
+            nodoActual.datos.set(indiceDatoDestino, hermanoDerecho.datos.get(i));
+            indiceDatoDestino++; // Avanza al siguiente hueco
+        }
+    
+        // Copiamos los hijos del hermano derecho
+        for (int i = 0; i <= datosHermano; i++) {
+            nodoActual.hijos.set(indiceHijoDestino, hermanoDerecho.hijos.get(i));
+            indiceHijoDestino++; // Avanza de forma independiente
+        }
+        
+        //  eliminamos el hermano Derecho
+        eliminarHijoDelNodo(nodoPadre, posHermanoDerecho);
+        
+        // eliminamos el dato que bajo
+        eliminarDatoDelNodo(nodoPadre, posHermanoDerecho - 1); 
+    }
+    
+    private void fusionarConHermanoIzquierdo(NodoMVias<T> nodoActual, NodoMVias<T> nodoPadre, int posHermanoIzquierdo){
+        NodoMVias<T> hermanoIzquierdo = nodoPadre.hijos.get(posHermanoIzquierdo);
+        int indiceDatoDestino = nroDeDatosNoVacios(hermanoIzquierdo); 
+    
+        //  Bajamos el datoDelPadre 
+        T datoDelPadre = nodoPadre.datos.get(posHermanoIzquierdo);
+        hermanoIzquierdo.datos.set(indiceDatoDestino, datoDelPadre);
+        indiceDatoDestino++; // Avanzamos al siguiente espacio libre
+        int indiceHijoDestino = indiceDatoDestino;
+    
+        //  Copiamos los datos del nodoActual al hermano izquierdo
+        int datosActuales = nroDeDatosNoVacios(nodoActual);
+        for (int i = 0; i < datosActuales; i++) {
+            hermanoIzquierdo.datos.set(indiceDatoDestino, nodoActual.datos.get(i));
+            indiceDatoDestino++; 
+        }
+
+        // Copiamos los hijos del nodoActual al hermano izquierdo
+        for (int i = 0; i <= datosActuales; i++) {
+            hermanoIzquierdo.hijos.set(indiceHijoDestino, nodoActual.hijos.get(i));
+            indiceHijoDestino++; 
+        }
+    
+        // Eliminamos el nodoActual de los hijos del nodoPadre 
+        eliminarHijoDelNodo(nodoPadre, posHermanoIzquierdo + 1);
+
+        // Eliminamos el dato que bajó del nodoPadre
+        eliminarDatoDelNodo(nodoPadre, posHermanoIzquierdo);
+    }
+    
+    private void prestarOrFusionar(NodoMVias<T> nodoActual, NodoMVias<T> nodoPadre, int posDelHijoEnNodoPadre){
+        int posHermanoIzquierdo = posDelHijoEnNodoPadre - 1;
+        int posHermanoDerecho = posDelHijoEnNodoPadre + 1;
+        // 1. Prestarse un dato del hermano de la SIGUIENTE posición (Derecho)
+        if (posHermanoDerecho <= nroDeDatosNoVacios(nodoPadre) && 
+            nroDeDatosNoVacios(nodoPadre.hijos.get(posHermanoDerecho)) > getNroMinimoDeDatos()) {
+            prestarDelHermanoDerecho(nodoActual, nodoPadre, posHermanoDerecho, posDelHijoEnNodoPadre);
+        } 
+        // 2. Prestarse un dato del hermano de la ANTERIOR posición (Izquierdo)
+        else if (posHermanoIzquierdo >= 0 && 
+                 nroDeDatosNoVacios(nodoPadre.hijos.get(posHermanoIzquierdo)) > getNroMinimoDeDatos()) {
+            prestarDelHermanoIzquierdo(nodoActual, nodoPadre, posHermanoIzquierdo, posDelHijoEnNodoPadre);
+        } 
+        // 3. Fusionar con el hermano de la SIGUIENTE posición (Derecho)
+        else if (posHermanoDerecho <= nroDeDatosNoVacios(nodoPadre)) {
+            fusionarConHermanoDerecho(nodoActual, nodoPadre, posHermanoDerecho);
+        } 
+        // 4. Fusionar con el hermano de la ANTERIOR posición (Izquierdo)
+        else if (posHermanoIzquierdo >= 0) {
+            fusionarConHermanoIzquierdo(nodoActual, nodoPadre, posHermanoIzquierdo);
+        }
+    }
+    
+    // MÉTODO CORREGIDO: Reemplaza antes de eliminar para protegerse del Underflow
+    private void reemplazarYEliminarPredecesorInOrden(NodoMVias<T> nodoOriginal, int posDelDatoOriginal, Stack<NodoMVias<T>> pilaDeNodos, Stack<Integer> pilaDePosicionesDeNodos){
+        // Guardamos el nodo original en el rastro
+        pilaDeNodos.push(nodoOriginal);
+        pilaDePosicionesDeNodos.push(posDelDatoOriginal);
+        
+        // Bajamos por el hijo izquierdo
+        NodoMVias<T> nodoActual = nodoOriginal.hijos.get(posDelDatoOriginal);
+        
+        // Bajamos lo más a la derecha posible
+        while (!esNodoHoja(nodoActual)) {
+            int posMasALaDerecha = nroDeDatosNoVacios(nodoActual);
+            pilaDePosicionesDeNodos.push(posMasALaDerecha);
+            pilaDeNodos.push(nodoActual);
+            nodoActual = nodoActual.hijos.get(posMasALaDerecha);
+        }
+        
+        // Obtenemos el valor del predecesor in-orden
+        int posDelPredecesorInOrden = nroDeDatosNoVacios(nodoActual) - 1;
+        T predecesorInOrden = nodoActual.datos.get(posDelPredecesorInOrden);
+        
+        // ¡REEMPLAZO SEGURO! Hacemos el cambio antes de que eliminarHoja modifique la estructura
+        nodoOriginal.datos.set(posDelDatoOriginal, predecesorInOrden);
+        
+        // Eliminamos el dato duplicado de la hoja
+        eliminarHoja(nodoActual, pilaDeNodos, pilaDePosicionesDeNodos, posDelPredecesorInOrden);
     }
 
     @Override
-    public void eliminar(T datoEliminar) { //ubicar donde ira el fusionar y el prestar
-        if (esDatoVacio(datoEliminar)) {
-            throw new IllegalArgumentException("El dato a eliminar no puede ser vacio");
+    public void eliminar(T datoAEliminar) {
+        if (datoAEliminar == null) {
+            throw new IllegalArgumentException("El arbol no acepta datos nulos !");
         }
+        
+        if (esArbolVacio()) {
+            throw new IllegalArgumentException("EL ARBOL ESTA VACIO no se Puede eliminar");
+        }
+        
         NodoMVias<T> nodoActual = raiz;
-        Stack<NodoMVias<T>> pilaDeNodos = new Stack<>();
-        NodoMVias<T> nodoDelDatoEliminar = NODO_VACIO;
-        int posDelDatoEliminar = POSICION_INVALIDA;
-        while (!esNodoVacio(nodoActual)){
-            int posDelDatoEnNodo = obtenerPosicionDeDatoEnNodo(nodoActual,datoEliminar);
-            if (posDelDatoEnNodo != POSICION_INVALIDA){
-                nodoDelDatoEliminar = nodoActual;
-                posDelDatoEliminar = posDelDatoEnNodo;
-                nodoActual = NODO_VACIO;
-            } else {
-                int posPorDondeBajar = obtenerPosicionPorDondeBajar(nodoActual,datoEliminar);
+        Stack<NodoMVias<T>> pilaDeNodos = new Stack<>(); // para recordar los nodos que fuimos bajando hasta llegar al nodo que tiene el datoAEliminar
+        Stack<Integer> pilaDePosicionesDeNodos = new Stack<>(); // para recordar las posiciones de los nodos por los que fuimos bajando
+        int posDelDatoEnNodo = POSICION_INVALIDA;
+        
+        do {
+            posDelDatoEnNodo = obtenerPosicionDeDatoEnNodo(nodoActual, datoAEliminar);
+            if (posDelDatoEnNodo != POSICION_INVALIDA) { // el dato Se Encuentra en el nodoActual
+                
+                if (esNodoHoja(nodoActual)) { 
+                    // 1 CASO : el dato se encuentra en una hoja
+                    eliminarHoja(nodoActual,pilaDeNodos,pilaDePosicionesDeNodos,posDelDatoEnNodo);
+                    nodoActual = NODO_VACIO;
+                } else {
+                    // 2 CASO CORREGIDO: el dato se encuentra en un nodo NO HOJA
+                    reemplazarYEliminarPredecesorInOrden(nodoActual, posDelDatoEnNodo, pilaDeNodos, pilaDePosicionesDeNodos);
+                    nodoActual = NODO_VACIO;
+                }
+                
+            } else { // no esta en el nodo
+                int posPorDondeBajar = obtenerPosicionPorDondeBajar(nodoActual,datoAEliminar);
+                pilaDePosicionesDeNodos.push(posPorDondeBajar);
                 pilaDeNodos.push(nodoActual);
                 nodoActual = nodoActual.hijos.get(posPorDondeBajar);
             }
-        }
-
-        if (esNodoVacio(nodoDelDatoEliminar)){
-            throw new IllegalArgumentException("El dato no se encuentra en el arbol");
-        }
-
-        if (esNodoHoja(nodoDelDatoEliminar)) {
-            eliminarDatoPosicion(nodoDelDatoEliminar, posDelDatoEliminar);
-            if (nroDeDatosNoVacios(nodoDelDatoEliminar)<getNroMinimoDeDatos()) {
-                prestarseOFusionarse(nodoDelDatoEliminar,pilaDeNodos);
-            }
-        } else {
-            pilaDeNodos.push(nodoDelDatoEliminar);
-            NodoMVias<T> nodoDelPredecesor = obtenerNodoDelPredecesor(
-                    nodoDelDatoEliminar.hijos.get(posDelDatoEliminar),
-                    pilaDeNodos
-            );
-            T datoPredecesor = nodoDelPredecesor.datos.get(
-                    nroDeDatosNoVacios(nodoDelPredecesor)-1
-            );
-            nodoDelPredecesor.datos.set(nroDeDatosNoVacios(nodoDelPredecesor)-1,
-                    (T)DATO_VACIO);
-            nodoDelDatoEliminar.datos.set(posDelDatoEliminar, datoPredecesor);
-            if (nroDeDatosNoVacios(nodoDelPredecesor) < getNroMinimoDeDatos()) {
-                prestarseOFusionarse(nodoDelPredecesor,pilaDeNodos);
-            }
+ 
+        } while (!esNodoVacio(nodoActual));
+        
+        if (posDelDatoEnNodo == POSICION_INVALIDA) {
+            throw new IllegalArgumentException("NO EXISTE EL DATO A ELIMINAR EN EL NODO");
         }
     }
 
@@ -688,7 +599,6 @@ public abstract class ArbolB<T extends Comparable<T>> extends
         }
         sb.append(prefijo);
         sb.append(esUltimo ? "└── " : "├── ");
-
         // Mostrar los datos del nodo entre corchetes
         sb.append("[");
         int nroDatos = nroDeDatosNoVacios(nodo);
@@ -699,7 +609,6 @@ public abstract class ArbolB<T extends Comparable<T>> extends
             }
         }
         sb.append("]\n");
-
         // Recorrer los hijos
         String nuevoPrefijo = prefijo + (esUltimo ? "    " : "│   ");
         int totalHijos = nroDatos + 1;

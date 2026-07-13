@@ -170,5 +170,9 @@ public class Main {
         System.out.println("=============================================");
         System.out.println("  TODAS LAS PRUEBAS FINALIZADAS");
         System.out.println("=============================================");
+        System.out.println("Eliminando boleto 101...");
+        registro.cancelarVuelo(new Boleto(101, "", 0, 0, 0));
+        System.out.println("Cantidad despues de eliminar: " + registro.cantidadDePasajeros());
+        registro.mostrarArbol();
     }
 }
